@@ -632,5 +632,14 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-//test commit - git commit -m "test"
-// tesy push - git push
+/*test 1️⃣ Remove the submodule reference
+git rm -r --cached SupermarketApp
+
+2️⃣ Add the folder back normally
+git add SupermarketApp
+
+3️⃣ Commit the fix
+git commit -m "Convert SupermarketApp from submodule to normal folder"
+
+4️⃣ Push
+git push */
