@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f5f6fa;
+        }
+        .card-box {
+            border-radius: 12px;
+            padding: 25px;
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .stat-label {
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/inventory">Supermarket App</a>
+        <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/inventory">Inventory</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/users">User List</a></li>
+            <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container mt-4">
+
+    <h2 class="text-center mb-4 fw-bold">Admin Dashboard</h2>
+
+    <!-- Top Stats -->
+    <div class="row g-4">
+        <div class="col-md-3">
+            <div class="card-box text-center">
+                <div class="stat-value">$<%= stats.dailyRevenue %></div>
+                <div class="stat-label">Revenue Today</div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card-box text-center">
+                <div class="stat-value">$<%= stats.weeklyRevenue %></div>
+                <div class="stat-label">Revenue This Week</div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card-box text-center">
+                <div class="stat-value"><%= stats.dailyOrders %></div>
+                <div class="stat-label">Orders Today</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card-box text-center">
+                <div class="stat-value"><%= stats.weeklyOrders %></div>
+                <div class="stat-label">Orders This Week</div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Second Row -->
+    <div class="row g-4 mt-2">
+
+        <div class="col-md-3">
+            <div class="card-box text-center">
+                <div class="stat-value"><%= stats.unitsToday %></div>
+                <div class="stat-label">Units Sold Today</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card-box text-center">
+                <div class="stat-value"><%= stats.unitsWeek %></div>
+                <div class="stat-label">Units Sold This Week</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card-box text-center">
+                <div class="stat-value"><%= stats.totalUsers %></div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card-box text-center">
+                <div class="stat-value"><%= stats.totalProducts %></div>
+                <div class="stat-label">Total Products</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Best Selling Products -->
+    <div class="mt-5">
+        <h4 class="fw-bold">Top 5 Best-Selling Products</h4>
+        <table class="table table-bordered mt-2 text-center">
+            <thead class="table-dark">
+                <tr>
+                    <th>Product</th>
+                    <th>Units Sold</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% bestProducts.forEach(b => { %>
+                    <tr>
+                        <td><%= b.productName %></td>
+                        <td><%= b.sold %></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

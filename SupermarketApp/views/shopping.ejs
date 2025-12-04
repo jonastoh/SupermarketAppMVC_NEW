@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <title>Supermarket App</title>
+
+  <style>
+      body {
+          background: linear-gradient(to bottom right, #f4f7fb, #eef2f7);
+      }
+
+      .product-card {
+          width: 300px;
+          border-radius: 18px;
+          overflow: hidden;
+          background: #ffffff;
+          border: none;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .product-card:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      }
+
+      .product-img-container {
+          background: #f7f9fc;
+          padding: 25px;
+          height: 200px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+      }
+
+      .product-img {
+          max-height: 150px;
+          object-fit: contain;
+      }
+
+      .qty-wrapper {
+          display: flex;
+          align-items: center;
+          background: #f1f3f6;
+          border-radius: 40px;
+          padding: 5px;
+          width: 100%;
+      }
+
+      .qty-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          border: none;
+          background: #ffffff;
+          color: #333;
+          font-size: 18px;
+          font-weight: bold;
+          transition: 0.2s;
+      }
+
+      .qty-input {
+          width: 70px;
+          border: none;
+          background: transparent;
+          text-align: center;
+      }
+
+      .search-filter-row {
+          max-width: 900px;
+          margin: 0 auto 30px auto;
+      }
+
+      .review-stars {
+          color: #f5c518;
+      }
+  </style>
+</head>
+
+<body>
+
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Supermarket App</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="/cart">View Cart</a></li>
+        <li class="nav-item"><a class="nav-link" href="/order-history">Order History</a></li>
+        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4 mb-5">
+
+  <p class="text-center fs-5">Welcome, <%= user.username %> (<%= user.role %>)</p>
+  <h2 class="text-center mb-3 fw-bold">Products from Supermarket</h2>
+
+  <% if (error && error.length > 0) { %>
+      <div class="alert alert-danger text-center"><%= error %></div>
+  <% } %>
+
+  <!-- 🔍 SEARCH + FILTER ROW -->
+  <div class="row search-filter-row g-2 align-items-center">
+
+      <div class="col-md-4">
+          <input type="text" id="searchInput" class="form-control form-control-lg shadow-sm"
+                 placeholder="Search for product" onkeyup="filterProducts()">
+      </div>
+
+      <div class="col-md-4">
+          <select id="priceFilter" class="form-select form-select-lg shadow-sm" onchange="filterProducts()">
+              <option value="all">All price ranges</option>
+              <option value="low">Below $2.00</option>
+              <option value="mid">$2.00 - $4.00</option>
+              <option value="high">Above $4.00</option>
+          </select>
+      </div>
+
+      <!-- ⭐ NEW CATEGORY FILTER -->
+      <div class="col-md-4">
+          <select id="categoryFilter" class="form-select form-select-lg shadow-sm" onchange="filterProducts()">
+              <option value="all">All categories</option>
+              <option value="fruits">Fruits</option>
+              <option value="vegetables">Vegetables</option>
+              <option value="dairy">Dairy</option>
+              <option value="bakery">Bakery</option>
+              <option value="other">Other</option>
+          </select>
+      </div>
+
+  </div>
+
+  <div id="productContainer" class="d-flex flex-wrap justify-content-center gap-4">
+
+    <% products.forEach(p => { %>
+
+      <div class="card product-card shadow-sm product-item"
+        data-name="<%= p.productName.toLowerCase() %>"
+        data-price="<%= p.price %>"
+
+        data-category="
+          <% if (p.productName === 'Bananas') { %> fruits
+          <% } else if (p.productName === 'Milk') { %> dairy
+          <% } else if (p.productName === 'Bread') { %> bakery
+          <% } else if (p.productName === 'Tomatoes') { %> vegetables
+          <% } else { %> other <% } %>
+        "
+      >
+
+        <div class="product-img-container">
+          <img src="/images/<%= p.image %>" class="product-img">
+        </div>
+
+        <div class="card-body text-center">
+          <h5 class="card-title fw-bold">
+            <a href="/product/<%= p.id %>" class="text-decoration-none">
+              <%= p.productName %>
+            </a>
+          </h5>
+
+          <p class="mb-1 text-muted">Stock: <%= p.quantity %></p>
+          <p class="fw-bold fs-5">$<%= p.price.toFixed(2) %></p>
+
+          <div class="d-flex justify-content-center align-items-center mb-2">
+              <span class="review-stars">★ ★ ★ ★ ☆</span>
+              <a href="/reviews/<%= p.id %>" class="ms-2 small">View reviews</a>
+          </div>
+
+          <form action="/add-to-cart/<%= p.id %>" method="POST" onsubmit="return validateQty('<%= p.id %>')">
+            <div class="qty-wrapper mb-3">
+              <button type="button" class="qty-btn" onclick="changeQty('<%= p.id %>', -1, <%= p.quantity %>)">−</button>
+              <input type="number" class="qty-input" id="qty-input-<%= p.id %>" placeholder="0"
+                min="1" max="<%= p.quantity %>" oninput="updateHiddenQty('<%= p.id %>', <%= p.quantity %>)">
+              <button type="button" class="qty-btn" onclick="changeQty('<%= p.id %>', 1, <%= p.quantity %>)">+</button>
+            </div>
+
+            <input type="hidden" name="quantity" id="quantity-<%= p.id %>" value="">
+            <button class="btn btn-primary btn-add w-100">Add to Cart</button>
+          </form>
+
+        </div>
+      </div>
+
+    <% }) %>
+
+  </div>
+</div>
+
+<!-- JS FUNCTIONS -->
+<script>
+  function filterProducts() {
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      const priceFilter = document.getElementById("priceFilter").value;
+      const categoryFilter = document.getElementById("categoryFilter").value;
+
+      const items = document.querySelectorAll(".product-item");
+
+      items.forEach(item => {
+          const name = item.getAttribute("data-name");
+          const price = parseFloat(item.getAttribute("data-price"));
+          const category = item.getAttribute("data-category").trim();
+
+          const nameMatch = name.includes(search);
+
+          let priceMatch = true;
+          if (priceFilter === "low") priceMatch = price < 2;
+          if (priceFilter === "mid") priceMatch = price >= 2 && price <= 4;
+          if (priceFilter === "high") priceMatch = price > 4;
+
+          const categoryMatch =
+              categoryFilter === "all" || category === categoryFilter;
+
+          item.style.display = (nameMatch && priceMatch && categoryMatch) ? "" : "none";
+      });
+  }
+
+  function changeQty(id, amount, stock) {
+      const input = document.getElementById(`qty-input-${id}`);
+      let current = parseInt(input.value);
+
+      if (isNaN(current)) current = 0;
+
+      let newValue = current + amount;
+      if (newValue < 1) newValue = 1;
+      if (newValue > stock) newValue = stock;
+
+      input.value = newValue;
+      document.getElementById(`quantity-${id}`).value = newValue;
+  }
+
+  function updateHiddenQty(id, stock) {
+      const input = document.getElementById(`qty-input-${id}`);
+      let value = parseInt(input.value);
+
+      if (isNaN(value)) {
+          document.getElementById(`quantity-${id}`).value = "";
+          return;
+      }
+
+      if (value < 1) value = 1;
+      if (value > stock) value = stock;
+
+      input.value = value;
+      document.getElementById(`quantity-${id}`).value = value;
+  }
+
+  function validateQty(id) {
+      const hidden = document.getElementById(`quantity-${id}`).value;
+      if (!hidden || parseInt(hidden) < 1) {
+          alert("Please enter a valid quantity.");
+          return false;
+      }
+      return true;
+  }
+</script>
+
+</body>
+</html>
