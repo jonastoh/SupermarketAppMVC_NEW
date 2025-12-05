@@ -238,43 +238,129 @@ app.get('/checkout', checkAuthenticated, (req, res) => {
     res.render('checkout', { cart, total, user: req.session.user });
 });
 
-/* DOWNLOAD RECEIPT */
+/* ============================================================
+   SUPERMARKET RECEIPT PDF (FIXED)
+============================================================ */
 app.get('/download-receipt/:orderId', checkAuthenticated, (req, res) => {
     const orderId = req.params.orderId;
     const userId = req.session.user.id;
 
     const sql = `
-        SELECT o.id AS orderId, o.total, o.orderDate,
-               oi.productName, oi.price, oi.quantity, oi.image
+        SELECT 
+            o.id AS orderId, 
+            o.total, 
+            o.orderDate,
+            oi.productName, 
+            oi.price, 
+            oi.quantity,
+            u.username,
+            u.email,
+            u.address,
+            u.contact
         FROM orders o
         JOIN order_items oi ON o.id = oi.orderId
+        JOIN users u ON o.userId = u.id
         WHERE o.id = ? AND o.userId = ?
     `;
 
-    connection.query(sql, [orderId, userId], (err, results) => {
+    connection.query(sql, [orderId, userId], (err, rows) => {
         if (err) throw err;
-        if (results.length === 0) return res.status(404).send("Order not found");
+        if (rows.length === 0) return res.status(404).send("Order not found");
 
-        const doc = new PDFDocument();
+        const order = rows[0];
+        const items = rows;
+
+        /* ⭐ FIX: Convert all prices + quantities to numbers */
+        items.forEach(i => {
+            i.price = Number(i.price);
+            i.quantity = Number(i.quantity);
+        });
+
+        const doc = new PDFDocument({ margin: 40 });
         res.setHeader("Content-Disposition", `attachment; filename=receipt-${orderId}.pdf`);
         res.setHeader("Content-Type", "application/pdf");
-
         doc.pipe(res);
 
-        doc.fontSize(20).text(`Receipt for Order #${orderId}`, { underline: true });
-        doc.moveDown();
-        doc.fontSize(12).text(`Order Date: ${results[0].orderDate}`);
-        doc.moveDown();
+        /* HEADER */
+        doc.fontSize(22).text("SUPERMARKET APP", { align: "center" });
+        doc.moveDown(0.5);
+        doc.fontSize(10).text("123 Market Street, Singapore", { align: "center" });
+        doc.text("Tel: +65 6000 0000", { align: "center" });
+        doc.moveDown(1);
 
-        results.forEach(item =>
-            doc.text(`${item.productName} x${item.quantity} — $${(item.price * item.quantity).toFixed(2)}`)
-        );
+        doc.fontSize(14).text(`Receipt for Order #${orderId}`, { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(11).text(`Order Date: ${order.orderDate}`);
+        doc.moveDown(1);
 
-        doc.moveDown();
-        doc.fontSize(16).text(`Total Paid: $${Number(results[0].total).toFixed(2)}`);
+        /* CUSTOMER INFO */
+        doc.fontSize(13).text("Customer Details", { underline: true });
+        doc.moveDown(0.3);
+        doc.fontSize(11).text(`Name: ${order.username}`);
+        doc.text(`Email: ${order.email}`);
+        doc.text(`Address: ${order.address}`);
+        doc.text(`Contact: ${order.contact}`);
+        doc.moveDown(1);
+
+        /* ITEMS HEADER */
+        doc.fontSize(13).text("Items Purchased", { underline: true });
+        doc.moveDown(0.3);
+
+        doc.fontSize(11);
+        doc.text("Item", 40, doc.y, { continued: true });
+        doc.text("Qty", 250, doc.y, { continued: true });
+        doc.text("Price", 310, doc.y, { continued: true });
+        doc.text("Total", 380, doc.y);
+        doc.moveDown(0.3);
+        doc.moveTo(40, doc.y).lineTo(500, doc.y).stroke();
+
+        doc.moveDown(0.5);
+
+        /* ITEM LIST */
+        items.forEach(i => {
+            const lineTotal = (i.price * i.quantity).toFixed(2);
+
+            doc.text(i.productName, 40, doc.y, { width: 180 });
+            doc.text(i.quantity.toString(), 260, doc.y);
+            doc.text(`$${i.price.toFixed(2)}`, 310, doc.y);
+            doc.text(`$${lineTotal}`, 380, doc.y);
+
+            doc.moveDown(0.4);
+        });
+
+        doc.moveDown(1);
+        doc.moveTo(40, doc.y).lineTo(500, doc.y).stroke();
+
+        /* TOTAL */
+        doc.moveDown(0.5);
+        doc.fontSize(14).text(`TOTAL PAID: $${Number(order.total).toFixed(2)}`, {
+            align: "right",
+            bold: true
+        });
+
+        doc.moveDown(2);
+
+        /* FOOTER */
+        doc.fontSize(11).text("Thank you for shopping with us!", { align: "center" });
+        doc.fontSize(10).text("Visit again!", { align: "center" });
 
         doc.end();
     });
+});
+
+
+/* PROCESS PAYMENT (just a prototype i made) */
+app.post('/process-payment', checkAuthenticated, (req, res) => {
+    // payment fields from the form
+    const { cardNumber, cardName, expiry, cvv } = req.body;
+
+    // ⭐ Fake validation (optional)
+    if (!cardNumber || !cardName || !expiry || !cvv) {
+        req.flash("error", "Payment information incomplete.");
+        return res.redirect("/checkout");
+    }
+
+    res.redirect('/place-order');
 });
 
 /* PLACE ORDER */
@@ -488,9 +574,8 @@ app.get('/admin/users', checkAuthenticated, checkAdmin, (req, res) => {
     });
 });
 
-/* ============================================================
-   ADMIN — UPDATE USER ROLE
-============================================================ */
+// ADMIN — UPDATE USER ROLE
+
 app.post('/admin/users/:id/update-role', checkAuthenticated, checkAdmin, (req, res) => {
     const userId = req.params.id;
     const newRole = req.body.role;
@@ -508,6 +593,21 @@ app.post('/admin/users/:id/update-role', checkAuthenticated, checkAdmin, (req, r
         res.redirect('/admin/users');
     });
 });
+
+//admin delete user role
+app.post('/admin/users/:id/delete', checkAuthenticated, checkAdmin, (req, res) => {
+    const userId = req.params.id;
+
+    connection.query("DELETE FROM users WHERE id = ?", [userId], err => {
+        if (err) throw err;
+
+        req.flash('success', 'User removed successfully.');
+        res.redirect('/admin/users');
+    });
+});
+
+
+
 
 /* ============================================================
    ⭐⭐ REVIEWS — VIEW & SUBMIT
@@ -632,14 +732,3 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-/*test 1️⃣ Remove the submodule reference
-git rm -r --cached SupermarketApp
-
-2️⃣ Add the folder back normally
-git add SupermarketApp
-
-3️⃣ Commit the fix
-git commit -m "Convert SupermarketApp from submodule to normal folder"
-
-4️⃣ Push
-git push */
