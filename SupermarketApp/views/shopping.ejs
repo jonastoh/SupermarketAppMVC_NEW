@@ -88,6 +88,7 @@
       <ul class="navbar-nav ms-auto">
         <li class="nav-item"><a class="nav-link" href="/cart">View Cart</a></li>
         <li class="nav-item"><a class="nav-link" href="/order-history">Order History</a></li>
+        <li class="nav-item"><a class="nav-link" href="/profile">Profile</a></li>
         <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
       </ul>
     </div>
@@ -124,11 +125,14 @@
       <div class="col-md-4">
           <select id="categoryFilter" class="form-select form-select-lg shadow-sm" onchange="filterProducts()">
               <option value="all">All categories</option>
-              <option value="fruits">Fruits</option>
-              <option value="vegetables">Vegetables</option>
-              <option value="dairy">Dairy</option>
-              <option value="bakery">Bakery</option>
-              <option value="other">Other</option>
+              <option value="Fruits">Fruits</option>
+              <option value="Vegetables">Vegetables</option>
+              <option value="Dairy">Dairy</option>
+              <option value="Bakery">Bakery</option>
+              <option value="Meat">Meat</option>
+              <option value="Drinks">Drinks</option>
+              <option value="Snacks">Snacks</option>
+              <option value="Others">Others</option>
           </select>
       </div>
 
@@ -141,14 +145,7 @@
       <div class="card product-card shadow-sm product-item"
         data-name="<%= p.productName.toLowerCase() %>"
         data-price="<%= p.price %>"
-
-        data-category="
-          <% if (p.productName === 'Bananas') { %> fruits
-          <% } else if (p.productName === 'Milk') { %> dairy
-          <% } else if (p.productName === 'Bread') { %> bakery
-          <% } else if (p.productName === 'Tomatoes') { %> vegetables
-          <% } else { %> other <% } %>
-        "
+        data-category="<%= p.category %>"
       >
 
         <div class="product-img-container">
@@ -202,7 +199,7 @@
       items.forEach(item => {
           const name = item.getAttribute("data-name");
           const price = parseFloat(item.getAttribute("data-price"));
-          const category = item.getAttribute("data-category").trim();
+          const category = item.getAttribute("data-category");
 
           const nameMatch = name.includes(search);
 
